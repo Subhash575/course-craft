@@ -1,4 +1,26 @@
+import dotenv from "dotenv";
 import mongoose from "mongoose";
+
+// Load environment variables
+dotenv.config();
+
+// db connection setup:-
+// Here we also exporting our connection
+export const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGO_URI);
+    console.log("MongoDB connected: " + conn.connection.host);
+    // console.log("Host:", mongoose.connection.host);
+    // console.log("Database:", mongoose.connection.name);
+    // console.log("State:", mongoose.connection.readyState);
+  } catch (err) {
+    console.log(err);
+    process.exit(1); //terminate nodejs process.
+  }
+};
+
+// conn.connection → The actual database connection object
+// conn.connection.host The host property tells you which MongoDB server (host/IP address) you are connected to.
 
 const { Schema } = mongoose; // or const Schema = mongoose.Schema;
 const { ObjectId } = Schema; // similarly here
