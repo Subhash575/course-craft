@@ -9,6 +9,7 @@ import { connectDB } from "./db.js";
 dotenv.config();
 
 const app = express();
+app.use(express.json());
 
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/course", courseRoute);

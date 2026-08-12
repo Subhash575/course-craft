@@ -27,7 +27,7 @@ const { ObjectId } = Schema; // similarly here
 
 // User Schema
 const userSchema = new Schema({
-  _id: ObjectId,
+  // _id: ObjectId,  --> mongoose automatically create this.
   email: {
     type: String,
     unique: true,
@@ -39,7 +39,6 @@ const userSchema = new Schema({
 
 // Admin Schema
 const adminSchema = new Schema({
-  _id: ObjectId,
   email: {
     type: String,
     unique: true,
@@ -51,7 +50,6 @@ const adminSchema = new Schema({
 
 // Course Schema
 const courseSchema = new Schema({
-  _id: ObjectId,
   title: String,
   description: String,
   price: Number,
@@ -66,7 +64,6 @@ const courseSchema = new Schema({
 // Purchase Schema
 
 const purchaseSchema = new Schema({
-  _id: ObjectId,
   // which course is purchase.
   courseId: {
     type: ObjectId,
