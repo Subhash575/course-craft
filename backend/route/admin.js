@@ -5,6 +5,8 @@ import { signinSchema } from "../validation/user.validation.js";
 import { signupSchema } from "../validation/user.validation.js";
 import jwt from "jsonwebtoken";
 const JWT_Secret = process.env.ADMIN_JWT_SECRET;
+// We always set-different secret for amdin, user so that bydefault user with same userId,payload
+// not able to hit the admin endpoint. (imp pt to know)-->
 const router = express.Router();
 // Here what we have done is all the endpoint restricted to admin. I put it here.
 
