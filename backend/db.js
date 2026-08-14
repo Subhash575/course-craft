@@ -53,7 +53,7 @@ const courseSchema = new Schema({
   title: String,
   description: String,
   price: Number,
-  ImageUrl: String,
+  imageKey: String,
   // course created by the admin(creator)
   creatorId: {
     type: ObjectId,

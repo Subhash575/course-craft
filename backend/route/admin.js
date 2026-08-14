@@ -1,8 +1,10 @@
 import express from "express";
 import bcrypt from "bcrypt";
-import { AdminModel } from "../db.js";
+// import { AdminModel } from "../db.js";
 import { signinSchema } from "../validation/user.validation.js";
 import { signupSchema } from "../validation/user.validation.js";
+// import { CourseModel } from "../db.js";
+import { r2 } from "../config/r2.js";
 import jwt from "jsonwebtoken";
 const JWT_Secret = process.env.ADMIN_JWT_SECRET;
 // We always set-different secret for amdin, user so that bydefault user with same userId,payload
@@ -90,8 +92,88 @@ router.post("/signin", async (req, res) => {
 // After signup, login I can use the `middleware` so that all admin-related endpoint is
 // only access by admin.
 
+router.post("/course/upload-url", adminMiddleware, async (req, res) => {
+  try {
+    const { fileName, fileType } = req.body;
+
+    if (!fileName || !fileType) {
+      return res.status(400).json({
+        message: "fileName and fileType are required",
+      });
+    }
+
+    // Only allow images for now
+    if (!fileType.startsWith("image/")) {
+      return res.status(400).json({
+        message: "Only image files are allowed",
+      });
+    }
+
+    // Create unique file name
+    const uniqueFileName = `${crypto.randomUUID()}-${fileName}`;
+
+    // Path inside R2 bucket
+    const key = `courses/thumbnails/${uniqueFileName}`;
+
+    // Tell R2 what object we want to upload
+    const command = new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: key,
+      ContentType: fileType,
+    });
+
+    // Generate temporary upload URL
+    const uploadUrl = await getSignedUrl(r2, command, {
+      expiresIn: 300,
+    });
+
+    return res.status(200).json({
+      uploadUrl,
+      key,
+    });
+  } catch (err) {
+    console.error(err);
+
+    return res.status(500).json({
+      message: "Failed to generate upload URL",
+    });
+  }
+});
+/*
+Cloudflare documents this same general pattern: create a PutObjectCommand, then generate a presigned URL with getSignedUrl.
+*/
+
 // create course
-router.post("/course", (req, res) => {});
+router.post("/course", adminMiddleware, async (req, res) => {
+  try {
+    const { title, description, price, imageKey } = req.body;
+
+    if (!title || !description || price === undefined || !imageKey) {
+      return res.status(400).json({
+        message: "All course fields are required",
+      });
+    }
+
+    const course = await CourseModel.create({
+      title,
+      description,
+      price,
+      imageKey,
+      creatorId: req.userId,
+    });
+
+    return res.status(201).json({
+      message: "Course created successfully",
+      course,
+    });
+  } catch (err) {
+    console.error(err);
+
+    return res.status(500).json({
+      message: "Failed to create course",
+    });
+  }
+});
 
 // delete course
 router.delete("/course/:id", (req, res) => {});
