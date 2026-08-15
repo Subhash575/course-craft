@@ -1,10 +1,13 @@
 import express from "express";
 import bcrypt from "bcrypt";
-// import { AdminModel } from "../db.js";
+import { AdminModel } from "../db.js";
 import { signinSchema } from "../validation/user.validation.js";
 import { signupSchema } from "../validation/user.validation.js";
 // import { CourseModel } from "../db.js";
+import { adminMiddleware } from "../middleware/admin.js";
 import { r2 } from "../config/r2.js";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import jwt from "jsonwebtoken";
 const JWT_Secret = process.env.ADMIN_JWT_SECRET;
 // We always set-different secret for amdin, user so that bydefault user with same userId,payload
@@ -173,6 +176,12 @@ router.post("/course", adminMiddleware, async (req, res) => {
       message: "Failed to create course",
     });
   }
+
+  // ----- testing endpoint -----------
+  // return res.status(200).json({
+  //   message: "Admin middleware is working",
+  //   adminId: req.userId,
+  // });
 });
 
 // delete course
