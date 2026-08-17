@@ -2,7 +2,6 @@ import express from "express";
 import { userRoute } from "./route/user.js";
 import { courseRoute } from "./route/course.js";
 import { adminRoute } from "./route/admin.js";
-import { UserModel, AdminModel, CourseModel, PurchaseModel } from "./db.js";
 import dotenv from "dotenv";
 import { connectDB } from "./db.js";
 

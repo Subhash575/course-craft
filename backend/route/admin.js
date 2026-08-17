@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import { AdminModel } from "../db.js";
 import { signinSchema } from "../validation/user.validation.js";
 import { signupSchema } from "../validation/user.validation.js";
-// import { CourseModel } from "../db.js";
+import { CourseModel } from "../db.js";
 import { adminMiddleware } from "../middleware/admin.js";
 import { r2 } from "../config/r2.js";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
@@ -184,11 +184,62 @@ router.post("/course", adminMiddleware, async (req, res) => {
   // });
 });
 
+// update course content
+router.put("/course", adminMiddleware, async (req, res) => {
+  try {
+    // We need to know which course, We need to update that why "courseId" is needed.
+    const { title, description, price, imageKey, courseId } = req.body;
+
+    // (v.imp):- We need to check this course_Id belong to it creator or not.
+    // otherwise it create the problem bcs. Any creator with this courseId able to edit.
+    // this course.
+
+    // 1. Check courseId
+    if (!courseId) {
+      return res.status(400).json({
+        message: "courseId is required",
+      });
+    }
+
+    // 2. Find the course
+    const course = await CourseModel.findById(courseId);
+
+    if (!course) {
+      return res.status(404).json({
+        message: "Course not found",
+      });
+    }
+
+    // req.userId is adminId, course.creatorId is the person who own the course.
+    // 3. Check course ownership
+    // They both are "Object" type that why we first convert it into string then compare.
+    if (course.creatorId.toString() !== req.userId.toString()) {
+      return res.status(403).json({
+        message: "Unauthorized access",
+      });
+    }
+
+    // 4. Update course
+    course.title = title;
+    course.description = description;
+    course.price = price;
+    course.imageKey = imageKey;
+
+    // We already fetched the course document using findById().
+    // After modifying its fields, save() writes those changes back to MongoDB.
+    // Use updateOne()/findByIdAndUpdate() when you want to update directly without modifying a fetched document.
+    await course.save();
+
+    res
+      .status(200)
+      .json({ message: "course update successfully", courseId: course._id });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // delete course
 router.delete("/course/:id", (req, res) => {});
-
-// add course content
-router.put("/course", (req, res) => {});
 
 // admin get all of their courses in bulk
 router.get("/course/bulk", (req, res) => {});
