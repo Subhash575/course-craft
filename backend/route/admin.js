@@ -7,6 +7,7 @@ import { CourseModel } from "../db.js";
 import { adminMiddleware } from "../middleware/admin.js";
 import { r2 } from "../config/r2.js";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import jwt from "jsonwebtoken";
 const JWT_Secret = process.env.ADMIN_JWT_SECRET;
@@ -255,6 +256,15 @@ router.delete("/course/:id", adminMiddleware, async (req, res) => {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
+    // Before deleting the information from MongoDB. First delete the image from
+    // R2 bucket.
+    await r2.send(
+      new DeleteObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME,
+        Key: course.imageKey,
+      }),
+    );
+
     // Important point is "filter parameter" name need to match with. Model schema name for
     // filtering.
     const delCourse = await CourseModel.deleteOne({ _id: courseId });
@@ -265,6 +275,24 @@ router.delete("/course/:id", adminMiddleware, async (req, res) => {
 });
 
 // admin get all of their courses in bulk
-router.get("/course/bulk", (req, res) => {});
+router.get("/course/bulk", adminMiddleware, async (req, res) => {
+  try {
+    // admin get all of their course.
+    const adminId = req.userId;
+
+    // Is their is course related to admin or not
+    // find method-> return an array
+    const courses = await CourseModel.find({ creatorId: adminId });
+
+    // find() returns [] when no courses are found
+    if (courses.length == 0) {
+      return res.status(404).json({ message: "no course found" });
+    }
+
+    res.status(200).json({ courses: courses });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 export const adminRoute = router;
