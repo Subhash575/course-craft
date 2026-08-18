@@ -7,6 +7,7 @@ import { CourseModel } from "../db.js";
 import { adminMiddleware } from "../middleware/admin.js";
 import { r2 } from "../config/r2.js";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import jwt from "jsonwebtoken";
@@ -276,22 +277,58 @@ router.delete("/course/:id", adminMiddleware, async (req, res) => {
 
 // admin get all of their courses in bulk
 router.get("/course/bulk", adminMiddleware, async (req, res) => {
+  // try {
+  //   // admin get all of their course.
+  //   const adminId = req.userId;
+
+  //   // Is their is course related to admin or not
+  //   // find method-> return an array
+  //   const courses = await CourseModel.find({ creatorId: adminId });
+
+  //   // find() returns [] when no courses are found
+  //   if (courses.length == 0) {
+  //     return res.status(404).json({ message: "no course found" });
+  //   }
+  //   res.status(200).json({ courses: courses });
+  // } catch (err) {
+  //   res.status(500).json({ message: err.message });
+  // }
+
   try {
-    // admin get all of their course.
     const adminId = req.userId;
 
-    // Is their is course related to admin or not
-    // find method-> return an array
-    const courses = await CourseModel.find({ creatorId: adminId });
+    // 1. Get courses from MongoDB
+    const courses = await CourseModel.find({
+      creatorId: adminId,
+    });
 
-    // find() returns [] when no courses are found
-    if (courses.length == 0) {
-      return res.status(404).json({ message: "no course found" });
-    }
+    // 2. Add a temporary image URL to every course
+    const coursesWithImageUrl = await Promise.all(
+      courses.map(async (course) => {
+        const command = new GetObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: course.imageKey,
+        });
 
-    res.status(200).json({ courses: courses });
+        const imageUrl = await getSignedUrl(r2, command, {
+          expiresIn: 3600,
+        });
+
+        return {
+          ...course.toObject(),
+          imageUrl,
+        };
+      }),
+    );
+
+    // 3. Send courses + temporary image URLs
+    return res.status(200).json({
+      courses: coursesWithImageUrl,
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    return res.status(500).json({
+      message: "Error getting the courses",
+    });
   }
 });
 
